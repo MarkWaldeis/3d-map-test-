@@ -111,7 +111,7 @@ export function buildFoam() {
   // See
   const lakeFoam = foamRing(() => ZONES.lake.r + 0.15, 0.92, 0.5, 0xffffff, 0.7);
   lakeFoam.position.set(ZONES.lake.x, 0, ZONES.lake.z);
-  lakeFoam.scale.set(1.72, 1, 1.33); // an Seemesh (r*1.15/0.9 * scale 1.5) angepasst
+  lakeFoam.scale.set(0.95, 1, 0.73); // an Seemesh (r*1.15/0.9 * scale 0.82) angepasst
   group.add(lakeFoam);
   group.name = 'foam';
   return group;
@@ -131,7 +131,7 @@ export function buildLake() {
   geo.rotateX(-Math.PI / 2);
   const mat = waterMat({ shallow: 0x54c8d8, deep: 0x2b8fb5, center: 26, stripe: 0.08, amp: 0.05 });
   const mesh = new THREE.Mesh(geo, mat);
-  mesh.scale.set(1.5, 1, 1.5);
+  mesh.scale.set(0.82, 1, 0.82);
   mesh.position.set(ZONES.lake.x, 0.95, ZONES.lake.z);
   mesh.name = 'lake';
   return mesh;

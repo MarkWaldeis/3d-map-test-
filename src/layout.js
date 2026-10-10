@@ -23,7 +23,7 @@ export const ZONES = {
 
 // Flussverlauf vom See bis zur Bucht (x,z) + Breite
 export const RIVER = {
-  pts: [[-5, -5], [-9, 0], [-10, 7], [-7, 14], [-1, 18], [6, 19], [13, 20], [22, 23]],
+  pts: [[-5, -5], [-9, 0], [-10, 7], [-7, 14], [-1, 18], [6, 19], [13, 20], [19, 22.5], [25, 26], [29, 30]],
   width: 3.2,
   yStart: 0.75,   // Wasserspiegel am Seeauslauf
   yEnd: 0.02,     // am Meer
@@ -69,7 +69,7 @@ export const PLACEMENTS = [
   { file: 'field_wheat.glb', size: 1.0, at: [[-19, 22, 0.05], [-11, 25.5, 0.05]], squash: [1.0, 0.62, 1.0] },
   { file: 'field_vegetable.glb', size: 1.0, at: [[-19.5, 27.5, 0.05], [-11.5, 20, 0.05]], squash: [1.0, 0.62, 1.0] },
 
-  { file: 'pier_wood.glb', size: 1.5, at: [[17.5, 21, -0.85], [24, 19.5, -0.5]], yOverride: 0.55 },
+  { file: 'pier_wood.glb', size: 1.5, at: [[18.5, 25, -0.85], [27, 25, -0.5]], yOverride: 0.4 },
   { file: 'sailboat.glb', size: 0.6, at: [[24, 27, 0.5], [30, 22, -0.9]], water: true },
   { file: 'rowboat.glb', size: 0.4, at: [[18, 24.5, 1.2]], water: true },
   { file: 'barrels_crates.glb', size: 0.2, at: [[14.5, 19.5, 0.3], [4.5, 3.5, -1.1], [-1.5, 11.5, 2.2], [22.5, 18.5, 0.9]] },

@@ -91,7 +91,7 @@ export function heightAt(x, z) {
   }
 
   // See-Mulde (belirgin havza — sırt sızıntısını bastıracak kadar derin)
-  h -= 7.6 * gauss(x, z, ZONES.lake.x, ZONES.lake.z, 13);
+  h -= 7.6 * gauss(x, z, ZONES.lake.x, ZONES.lake.z, 10.5);
 
   // Dorfplatz + Dorf flach
   const dv = Math.hypot(x - ZONES.village.x, z - ZONES.village.z);
