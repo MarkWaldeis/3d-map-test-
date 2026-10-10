@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from '../vendor/controls/OrbitControls.js';
 import { WORLD } from './layout.js';
 import { buildTerrain, fbm, heightAt } from './terrain.js';
-import { buildSea, buildFoam, buildLake, buildRiver, buildWaterfall, tickWater } from './water.js';
+import { buildSea, buildFoam, buildLake, buildRiver, buildWaterfall, buildFountainWater, tickWater } from './water.js';
 import { loadAll, buildAssets } from './assets.js';
 
 const params = new URLSearchParams(location.search);
@@ -29,13 +29,13 @@ scene.fog = new THREE.Fog(0xbfe3ee, 150, 330);
 const camera = new THREE.PerspectiveCamera(23, innerWidth / innerHeight, 0.5, 600);
 const CAMS = {
   ref:     { pos: [10, 106, 148], tgt: [0, -3, -12] },
-  top:     { pos: [0, 110, 12], tgt: [0, 0, 0] },
+  top:     { pos: [0, 175, 6], tgt: [0, 0, 0] },
   iso:     { pos: [70, 55, 70], tgt: [0, 0, 0] },
   north:   { pos: [0, 35, -85], tgt: [0, 4, 0] },
   village: { pos: [12, 18, 30], tgt: [2, 3, 4] },
-  castle:  { pos: [45, 22, 12], tgt: [29, 8, -9] },
-  bay:     { pos: [18, 16, 46], tgt: [12, 2, 20] },
-  forest:  { pos: [-50, 20, 28], tgt: [-26, 4, -4] },
+  castle:  { pos: [52, 26, 26], tgt: [29, 10, -9] },
+  bay:     { pos: [24, 20, 52], tgt: [14, 2, 20] },
+  forest:  { pos: [-52, 24, 30], tgt: [-26, 4, -4] },
   low:     { pos: [55, 8, 55], tgt: [0, 6, 0] },
   river:   { pos: [4, 26, 38], tgt: [-7, 0, 8] },
   channel: { pos: [36, 14, 14], tgt: [24, 3, -9] },
@@ -50,7 +50,7 @@ const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
 controls.minDistance = 30;
-controls.maxDistance = 190;
+controls.maxDistance = 240;
 controls.minPolarAngle = 0.12;
 controls.maxPolarAngle = 1.42;
 controls.target.set(0, 0, -6);
@@ -84,8 +84,9 @@ world.add(buildSea());
 world.add(buildFoam());
 world.add(buildLake());
 world.add(buildRiver(heightAt));
-const waterfall = buildWaterfall();
+const waterfall = buildWaterfall(heightAt);
 world.add(waterfall);
+world.add(buildFountainWater(heightAt));
 
 // Wolken: weiche Sprites um die Insel + drunter
 function cloudTexture() {

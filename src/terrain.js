@@ -181,9 +181,15 @@ function paintColormap(size = 1024) {
         const t = 1 - sstep(0.7, 1.5, pd);
         r = lerp(r, dirt[0], t * 0.85); gg = lerp(gg, dirt[1], t * 0.85); b = lerp(b, dirt[2], t * 0.85);
       }
-      // Flussbett + Burgkanal: dunkler Sand unter Wasser
+      // Plaza-Untergrund als Stein einfärben (Fugen zwischen Kacheln)
+      const dpz = Math.hypot(x - ZONES.plaza.x, z - ZONES.plaza.z);
+      if (dpz < ZONES.plaza.r + 2.5 && h > 0.5) {
+        const t = 1 - sstep(ZONES.plaza.r - 1.5, ZONES.plaza.r + 2.5, dpz);
+        r = lerp(r, 152, t * 0.88); gg = lerp(gg, 148, t * 0.88); b = lerp(b, 142, t * 0.88);
+      }
+      // Flussbett + Burgkanal: dunkler Sand nur am echten Wasserrand
       const rd = riverDist(x, z), cd = channelDist(x, z);
-      if ((rd < 2.6 || cd < 3.4) && h < 1.2) { r = lerp(r, wetSand[0], 0.6); gg = lerp(gg, wetSand[1], 0.6); b = lerp(b, wetSand[2], 0.6); }
+      if ((rd < 2.6 || cd < 3.4) && h < 0.55) { r = lerp(r, wetSand[0], 0.6); gg = lerp(gg, wetSand[1], 0.6); b = lerp(b, wetSand[2], 0.6); }
 
       const k = (j * size + i) * 4;
       px[k] = r; px[k + 1] = gg; px[k + 2] = b; px[k + 3] = 255;
@@ -222,16 +228,19 @@ export function buildTerrain(quality = 'high') {
 }
 
 function buildUnderside() {
-  const th0 = Math.PI * 0.55, th1 = Math.PI * 0.98; // Sektor Südwest (Bild links unten)
-  const radial = 14, rings = 6, pts = [];
+  // Felsiger Zipfel rund um die ganze Insel (schwebender Fels wie im Referenzbild)
+  const th0 = 0, th1 = Math.PI * 2;
+  const radial = 56, rings = 6;
   const geo = new THREE.BufferGeometry();
   const verts = [], idx = [];
   for (let ri = 0; ri <= rings; ri++) {
     const f = ri / rings;
-    const y = -1.2 - f * 14;
-    const shrink = 1 - f * 0.85;
     for (let ai = 0; ai <= radial; ai++) {
       const th = th0 + (th1 - th0) * (ai / radial);
+      // Tiefe je Sektor: Süden/Osten (zur ref-Kamera) massiver, Norden flacher
+      const depthScale = 0.62 + 0.45 * Math.max(0, Math.sin(th + Math.PI * 0.15));
+      const y = -1.2 - f * 14 * depthScale;
+      const shrink = 1 - f * (0.8 + 0.1 * depthScale);
       const rr = coastRadius(th) * 0.9 * shrink * (0.9 + 0.25 * fbm(Math.cos(th) * 3, ri * 1.7));
       verts.push(Math.cos(th) * rr, y + 1.5 * fbm(th * 4, ri * 2.2), Math.sin(th) * rr);
     }

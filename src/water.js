@@ -58,7 +58,7 @@ function waterMat({ shallow, deep, center, stripe = 0.12, amp = 0.18 }) {
 export function buildSea() {
   const geo = new THREE.PlaneGeometry(340, 340, 90, 90);
   geo.rotateX(-Math.PI / 2);
-  const mat = waterMat({ shallow: 0x46c2cf, deep: 0x1571a0, center: 150, stripe: 0.13, amp: 0.22 });
+  const mat = waterMat({ shallow: 0x5fd4dd, deep: 0x2e9ec4, center: 150, stripe: 0.10, amp: 0.22 });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.y = WORLD.seaLevel;
   mesh.name = 'sea';
@@ -176,23 +176,25 @@ export function buildRiver(heightFn) {
   return mesh;
 }
 
-export function buildWaterfall() {
+export function buildWaterfall(heightFn) {
   const group = new THREE.Group();
-  // vom Bergspalt (z≈-24, h≈10.5) in den See (h≈0.95)
-  const top = new THREE.Vector3(-2.5, 11.2, -25.5);
-  const mid = new THREE.Vector3(-3.2, 5.5, -22.5);
-  const bot = new THREE.Vector3(-3.8, 1.0, -19.5);
+  // XZ-Verlauf vom Bergspalt in den See; y folgt dem Terrain (klebt am Hang)
+  const top = new THREE.Vector3(-2.5, 0, -25.8);
+  const mid = new THREE.Vector3(-3.2, 0, -22.5);
+  const bot = new THREE.Vector3(-4.0, 0, -18.5);
   const curve = new THREE.QuadraticBezierCurve3(top, mid, bot);
   const N = 40, W = 3.4;
+  const h = x => (heightFn ? heightFn(x.x, x.z) : 10);
+  const startY = h(top) + 2.0; // tritt leicht erhöht aus dem Fels
   const verts = [], uvs = [], idx = [];
   for (let i = 0; i <= N; i++) {
     const t = i / N;
     const p = curve.getPoint(t);
-    const tan = curve.getTangent(t);
-    // seitlich in x-Richtung (Wasserfall läuft in z)
+    const ty = h(p) + 0.14;
+    const y = t < 0.18 ? startY + (ty - startY) * (t / 0.18) : ty;
     const wHalf = W * (0.8 + 0.5 * t);
-    verts.push(p.x - wHalf * 0.5, p.y, p.z);
-    verts.push(p.x + wHalf * 0.5, p.y, p.z);
+    verts.push(p.x - wHalf * 0.5, y, p.z);
+    verts.push(p.x + wHalf * 0.5, y, p.z);
     uvs.push(0, t * 8, 1, t * 8);
   }
   for (let i = 0; i < N; i++) {
@@ -237,11 +239,23 @@ export function buildWaterfall() {
       }`,
   });
   const foam = new THREE.Mesh(foamGeo, foamMat);
-  foam.position.set(bot.x, 1.0, bot.z);
+  foam.position.set(bot.x, 0.98, bot.z);
   foam.name = 'waterfallFoam';
   group.add(foam);
   group.userData.mats = [mat, foamMat];
   return group;
+}
+
+// Brunnenwasser: kleine Scheibe im Becken (Referenz zeigt gefüllten Brunnen)
+export function buildFountainWater(heightFn) {
+  const y = (heightFn ? heightFn(2, 6) : 2.65) + 1.28;
+  const geo = new THREE.CircleGeometry(0.78, 20);
+  geo.rotateX(-Math.PI / 2);
+  const mat = waterMat({ shallow: 0x8adfe8, deep: 0x4fb9cf, center: 6, stripe: 0.18, amp: 0.03 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(2, y, 6);
+  mesh.name = 'fountainWater';
+  return mesh;
 }
 
 export function tickWater(root, t) {
