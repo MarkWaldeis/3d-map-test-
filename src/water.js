@@ -152,8 +152,12 @@ export function buildRiver(heightFn) {
     // su yüzeyi yatak üstünde ~0.9 — kanal içinde belirgin bant
     const bed = heightFn ? heightFn(p.x, p.y) : 0;
     const y = Math.max(bed + 0.9, 0.06);
-    verts.push(p.x - nx * wHalf, y, p.y - nz * wHalf);
-    verts.push(p.x + nx * wHalf, y, p.y + nz * wHalf);
+    // Ränder ans Terrain clampen, damit das Band keine Hänge durchsticht
+    const lx = p.x - nx * wHalf, lz = p.y - nz * wHalf;
+    const rx = p.x + nx * wHalf, rz = p.y + nz * wHalf;
+    const yl = heightFn ? Math.min(y, heightFn(lx, lz) + 0.05) : y;
+    const yr = heightFn ? Math.min(y, heightFn(rx, rz) + 0.05) : y;
+    verts.push(lx, yl, lz, rx, yr, rz);
     uvs.push(0, t * 30, 1, t * 30);
   }
   for (let i = 0; i < N; i++) {
@@ -184,17 +188,18 @@ export function buildWaterfall(heightFn) {
   const bot = new THREE.Vector3(-4.0, 0, -18.5);
   const curve = new THREE.QuadraticBezierCurve3(top, mid, bot);
   const N = 40, W = 3.4;
-  const h = x => (heightFn ? heightFn(x.x, x.z) : 10);
-  const startY = h(top) + 2.0; // tritt leicht erhöht aus dem Fels
+  const hFn = heightFn || ((x, z) => 10);
+  const startY = hFn(top.x, top.z) + 2.0; // tritt leicht erhöht aus dem Fels
   const verts = [], uvs = [], idx = [];
   for (let i = 0; i <= N; i++) {
     const t = i / N;
     const p = curve.getPoint(t);
-    const ty = h(p) + 0.14;
-    const y = t < 0.18 ? startY + (ty - startY) * (t / 0.18) : ty;
-    const wHalf = W * (0.8 + 0.5 * t);
-    verts.push(p.x - wHalf * 0.5, y, p.z);
-    verts.push(p.x + wHalf * 0.5, y, p.z);
+    const wHalf = W * (0.8 + 0.5 * t) * 0.5;
+    // je Rand-Vertex separat ans Terrain legen -> Band folgt dem Hang
+    const lx = p.x - wHalf, rx = p.x + wHalf;
+    const ly = t < 0.18 ? startY + (hFn(lx, p.z) + 0.12 - startY) * (t / 0.18) : hFn(lx, p.z) + 0.12;
+    const ry = t < 0.18 ? startY + (hFn(rx, p.z) + 0.12 - startY) * (t / 0.18) : hFn(rx, p.z) + 0.12;
+    verts.push(lx, ly, p.z, rx, ry, p.z);
     uvs.push(0, t * 8, 1, t * 8);
   }
   for (let i = 0; i < N; i++) {
@@ -248,8 +253,8 @@ export function buildWaterfall(heightFn) {
 
 // Brunnenwasser: kleine Scheibe im Becken (Referenz zeigt gefüllten Brunnen)
 export function buildFountainWater(heightFn) {
-  const y = (heightFn ? heightFn(2, 6) : 2.65) + 1.28;
-  const geo = new THREE.CircleGeometry(0.78, 20);
+  const y = (heightFn ? heightFn(2, 6) : 2.65) + 1.85;
+  const geo = new THREE.CircleGeometry(1.15, 20);
   geo.rotateX(-Math.PI / 2);
   const mat = waterMat({ shallow: 0x8adfe8, deep: 0x4fb9cf, center: 6, stripe: 0.18, amp: 0.03 });
   const mesh = new THREE.Mesh(geo, mat);
