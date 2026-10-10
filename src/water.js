@@ -111,7 +111,7 @@ export function buildFoam() {
   // See
   const lakeFoam = foamRing(() => ZONES.lake.r + 0.15, 0.92, 0.5, 0xffffff, 0.7);
   lakeFoam.position.set(ZONES.lake.x, 0, ZONES.lake.z);
-  lakeFoam.scale.set(1.15, 1, 0.9);
+  lakeFoam.scale.set(1.72, 1, 1.33); // an Seemesh (r*1.15/0.9 * scale 1.5) angepasst
   group.add(lakeFoam);
   group.name = 'foam';
   return group;
