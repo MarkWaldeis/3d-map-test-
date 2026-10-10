@@ -163,7 +163,7 @@ document.getElementById('refBtn')?.addEventListener('click', () => setCam('ref')
 // ---------- Loop ----------
 const clock = new THREE.Clock();
 const freeze = params.has('freeze');
-let t0 = 0, frames = 0, degraded = false;
+let t0 = 0, frames = 0, degraded = false, perfT0 = -1;
 renderer.setAnimationLoop(() => {
   const t = clock.getElapsedTime();
   const dt = Math.min(t - t0, 0.1); t0 = t;
@@ -193,11 +193,14 @@ renderer.setAnimationLoop(() => {
   controls.update();
   renderer.render(scene, camera);
 
-  // Auto-Degradierung: wenn dauerhaft < 28 FPS -> Pixelratio senken
-  frames++;
-  if (!degraded && frames === 180) {
-    const fps = 180 / clock.getElapsedTime();
-    if (fps < 28) { renderer.setPixelRatio(Math.min(devicePixelRatio, 1.2)); degraded = true; }
+  // Auto-Degradierung: FPS erst messen, sobald die Assets stehen (Ladezeit verfälscht sonst)
+  if (dynamic) {
+    if (frames === 0) perfT0 = t;
+    frames++;
+    if (!degraded && frames === 180) {
+      const fps = 180 / (t - perfT0);
+      if (fps < 28) { renderer.setPixelRatio(Math.min(devicePixelRatio, 1.2)); degraded = true; }
+    }
   }
 });
 
