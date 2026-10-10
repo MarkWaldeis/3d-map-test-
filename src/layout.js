@@ -62,7 +62,7 @@ export const PLACEMENTS = [
   { file: 'house_red_roof.glb', size: 1.0, at: [[-8.5, 10.5, 0.9], [0.5, 16.5, 3.3], [-2.5, -1.5, -0.25]] },
   { file: 'house_chimney.glb', size: 1.1, at: [[13, -4, -0.8], [-13, 4.5, 0.55]] },
 
-  { file: 'plaza_cobblestone_tile.glb', size: 1.0, squash: [1.0, 0.16, 1.0], grid: { x0: -4.5, z0: 1.2, dx: 5.0, dz: 5.0, nx: 4, nz: 3, s: 1.0 } },
+  { file: 'plaza_cobblestone_tile.glb', size: 1.0, squash: [1.0, 0.16, 1.0], grid: { x0: -4.6, z0: 1.4, dx: 2.6, dz: 2.6, nx: 6, nz: 4, s: 0.6 } },
 
   { file: 'barn_thatched.glb', size: 0.9, at: [[-25, 17, 0.7]] },
   { file: 'shed_wood.glb', size: 0.5, at: [[-22.5, 22.5, -0.4], [-9, 16.5, 2.1]] },
