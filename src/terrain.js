@@ -190,6 +190,9 @@ function paintColormap(size = 1024) {
       // Flussbett + Burgkanal: dunkler Sand nur am echten Wasserrand
       const rd = riverDist(x, z), cd = channelDist(x, z);
       if ((rd < 2.6 || cd < 3.4) && h < 0.55) { r = lerp(r, wetSand[0], 0.6); gg = lerp(gg, wetSand[1], 0.6); b = lerp(b, wetSand[2], 0.6); }
+      // Unterwasser-Hang des Burg-Inselchens als Fels statt Sand
+      const dI2 = Math.hypot(x - ZONES.castleIslet.x, z - ZONES.castleIslet.z) / ZONES.castleIslet.r;
+      if (dI2 < 1.25 && h < 1.0) { r = lerp(r, 96, 0.75); gg = lerp(gg, 90, 0.75); b = lerp(b, 80, 0.75); }
 
       const k = (j * size + i) * 4;
       px[k] = r; px[k + 1] = gg; px[k + 2] = b; px[k + 3] = 255;
@@ -263,12 +266,12 @@ function buildUnderside() {
   // Felszacken (Stalaktiten) unter der Insel
   const spikeGeo = new THREE.ConeGeometry(1, 1, 6);
   const spikeMat = new THREE.MeshStandardMaterial({ color: 0x5f574c, roughness: 1, flatShading: true });
-  for (let i = 0; i < 12; i++) {
-    const th = i * 0.52 + 0.3;
-    const rr = coastRadius(th) * (0.35 + 0.45 * Math.abs(fbm(Math.cos(th) * 5, 3)));
-    const len = 5 + 9 * Math.abs(fbm(th * 3, 7));
+  for (let i = 0; i < 14; i++) {
+    const th = i * 0.45 + 0.3;
+    const rr = coastRadius(th) * (0.3 + 0.5 * Math.abs(fbm(Math.cos(th) * 5, 3)));
+    const len = 8 + 10 * Math.abs(fbm(th * 3, 7));
     const spike = new THREE.Mesh(spikeGeo, spikeMat);
-    spike.scale.set(1.5 + len * 0.18, len, 1.5 + len * 0.18);
+    spike.scale.set(2.0 + len * 0.22, len, 2.0 + len * 0.22);
     spike.rotation.x = Math.PI; // Spitze nach unten
     spike.position.set(Math.cos(th) * rr, -1.5 - len * 0.45, Math.sin(th) * rr);
     grp.add(spike);

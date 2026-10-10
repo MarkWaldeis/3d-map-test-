@@ -12,7 +12,7 @@ export const WORLD = {
 export const ZONES = {
   plaza:   { x: 2, z: 6, r: 9 },
   lake:    { x: -4, z: -15, r: 11.5 },
-  beach:   { x: 11, z: 19, r: 13 },
+  beach:   { x: 11, z: 19, r: 15 },
   fields:  { x: -15, z: 22, r: 12 },
   village: { x: 2, z: 6, r: 15 },
   castleIslet: { x: 31, z: -9, r: 10 },
@@ -50,9 +50,10 @@ export const PATHS = [
 
 // Feste Platzierungen: [x, z, rotY(rad optional), sink]
 export const PLACEMENTS = [
-  { file: 'mountain_snowy_cave.glb', size: 4.0, at: [[-17, -29, 2.6], [3, -31, 0.4], [18, -25, -0.9]], sinkFrac: 0.34 },
+  { file: 'mountain_snowy_cave.glb', size: 4.0, at: [[-17, -29, 2.6], [3, -31, 0.4], [18, -25, -0.9]], sinkFrac: 0.40 },
+  { file: 'mountain_snowy_cave.glb', size: 3.2, at: [[-8, -30.5, 1.9], [11, -28, 2.8]], sinkFrac: 0.42 },
   { file: 'cliff_rock_castle.glb', size: 3.0, at: [[31, -9, 0.3]], sinkFrac: 0.30 },
-  { file: 'castle.glb', size: 2.5, at: [[31, -9, -0.5]], yOverride: 13.2 },
+  { file: 'castle.glb', size: 2.5, at: [[31, -9, -0.5]], yOverride: 13.2, brighten: 1.4 },
   { file: 'bridge_stone.glb', size: 3.0, at: [[25.5, -9, 1.62]], yOverride: 4.8 },
   { file: 'bridge_wood.glb', size: 1.0, at: [[-9.4, 3.4, 0.35], [-4.4, 16.4, 1.2]] },
   { file: 'windmill.glb', size: 1.6, at: [[-27, -10, 0.3]] },
@@ -71,11 +72,11 @@ export const PLACEMENTS = [
 
   { file: 'pier_wood.glb', size: 1.5, at: [[18.5, 25, -0.85], [27, 25, -0.5]], yOverride: 0.4 },
   { file: 'sailboat.glb', size: 0.9, at: [[21.5, 30, 0.5], [28.5, 28.5, -0.9]], water: true },
-  { file: 'rowboat.glb', size: 0.4, at: [[16.5, 28.5, 1.2]], water: true },
+  { file: 'rowboat.glb', size: 0.4, at: [[17.5, 30.5, 1.2]], water: true },
   { file: 'barrels_crates.glb', size: 0.2, at: [[14.5, 19.5, 0.3], [4.5, 3.5, -1.1], [-1.5, 11.5, 2.2], [22.5, 18.5, 0.9]] },
   { file: 'lamp_post.glb', size: 0.4, at: [[-3.5, 4, 0], [7.5, 4.5, 0.8], [9, 12.5, 0], [-6, 9.5, 0], [1.5, 13.5, 0], [12, 6, 0]] },
   { file: 'signpost.glb', size: 0.3, at: [[-8.5, -1, 0.7], [5.5, 16.5, -0.4], [-15, 13.5, 1.9]] },
-  { file: 'crystal_purple.glb', size: 0.55, at: [[33, -13.5, 0.6], [35, -11, -0.8], [31.5, -17.5, 1.7]] },
+  { file: 'crystal_purple.glb', size: 0.55, at: [[33, -13.5, 0.6], [34, -12.8, -0.8], [31.5, -17.5, 1.7]] },
   { file: 'crystal_purple.glb', size: 1.4, at: [[17, -8, 0.9]] },
   { file: 'crystal_purple.glb', size: 0.8, at: [[-26, 12, 0.4]] },
   { file: 'crystal_blue_ruins.glb', size: 0.6, at: [[-31, 7, 0.9]] },

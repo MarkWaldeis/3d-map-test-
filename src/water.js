@@ -182,39 +182,49 @@ export function buildRiver(heightFn) {
 
 export function buildWaterfall(heightFn) {
   const group = new THREE.Group();
-  // XZ-Verlauf vom Bergspalt in den See; y folgt dem Terrain (klebt am Hang)
+  // XZ-Verlauf vom Bergspalt zum Hang-Knie; y folgt dem Terrain (klebt am Hang)
   const top = new THREE.Vector3(-2.5, 0, -25.8);
   const mid = new THREE.Vector3(-3.2, 0, -22.5);
-  const bot = new THREE.Vector3(-4.0, 0, -18.5);
+  const bot = new THREE.Vector3(-3.5, 0, -21.3);
   const curve = new THREE.QuadraticBezierCurve3(top, mid, bot);
-  const N = 40, W = 2.4;
+  const N = 22, W = 3.2;
   const hFn = heightFn || ((x, z) => 10);
   const startY = hFn(top.x, top.z) + 2.0; // tritt leicht erhöht aus dem Fels
-  const kneeT = 0.45;
-  const kp = curve.getPoint(kneeT);
-  const kneeY = hFn(kp.x, kp.z) + 0.12;
   const edgeY = (x, z, t) => {
     const ty = hFn(x, z) + 0.12;
-    if (t < 0.18) return startY + (ty - startY) * (t / 0.18);
-    if (t < kneeT) return ty;
-    // unteres Stück: freier Fall vom Knie in den See
-    const k = (t - kneeT) / (1 - kneeT);
-    return kneeY + (0.5 - kneeY) * Math.pow(k, 0.85);
+    return t < 0.18 ? startY + (ty - startY) * (t / 0.18) : ty;
   };
   const verts = [], uvs = [], idx = [];
   for (let i = 0; i <= N; i++) {
     const t = i / N;
     const p = curve.getPoint(t);
     const wHalf = W * (0.8 + 0.5 * t) * 0.5;
-    // je Rand-Vertex separat -> Band folgt Hang oben, fällt unten
     const lx = p.x - wHalf, rx = p.x + wHalf;
     verts.push(lx, edgeY(lx, p.z, t), p.z, rx, edgeY(rx, p.z, t), p.z);
-    uvs.push(0, t * 8, 1, t * 8);
+    uvs.push(0, t * 4, 1, t * 4);
   }
   for (let i = 0; i < N; i++) {
     const a = i * 2, b = a + 1, c = a + 2, d = a + 3;
     idx.push(a, c, b, b, c, d);
   }
+  // Senkrechter Fall vom Hang-Knie in den See
+  const kp = curve.getPoint(1.0);
+  const kneeY = hFn(kp.x, kp.z) + 0.15;
+  const K = 26, FW = 3.4;
+  const fverts = [], fuvs = [], fidx = [];
+  for (let i = 0; i <= K; i++) {
+    const k = i / K;
+    const y = kneeY + (0.35 - kneeY) * Math.pow(k, 0.9);
+    const z = kp.z + 2.1 * k * k;   // Unterkante biegt Richtung See aus
+    const wHalf = FW * (0.75 + 0.5 * k) * 0.5;
+    fverts.push(kp.x - wHalf, y, z, kp.x + wHalf, y, z);
+    fuvs.push(0, 4 + k * 6, 1, 4 + k * 6);
+  }
+  for (let i = 0; i < K; i++) {
+    const a = i * 2, b = a + 1, c = a + 2, d = a + 3;
+    fidx.push(a, c, b, b, c, d);
+  }
+  verts.push(...fverts); uvs.push(...fuvs); idx.push(...fidx.map(v => v + (N + 1) * 2));
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
   g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
@@ -253,7 +263,7 @@ export function buildWaterfall(heightFn) {
       }`,
   });
   const foam = new THREE.Mesh(foamGeo, foamMat);
-  foam.position.set(bot.x, 0.98, bot.z);
+  foam.position.set(kp.x, 0.96, kp.z + 2.0);
   foam.name = 'waterfallFoam';
   group.add(foam);
   group.userData.mats = [mat, foamMat];
@@ -262,7 +272,7 @@ export function buildWaterfall(heightFn) {
 
 // Brunnenwasser: kleine Scheibe im Becken (Referenz zeigt gefüllten Brunnen)
 export function buildFountainWater(heightFn) {
-  const y = (heightFn ? heightFn(2, 6) : 2.65) + 1.85;
+  const y = (heightFn ? heightFn(2, 6) : 2.65) + 1.62;
   const geo = new THREE.CircleGeometry(1.15, 20);
   geo.rotateX(-Math.PI / 2);
   const mat = waterMat({ shallow: 0x8adfe8, deep: 0x4fb9cf, center: 6, stripe: 0.18, amp: 0.03 });

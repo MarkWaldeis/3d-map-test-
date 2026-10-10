@@ -188,6 +188,7 @@ export function buildAssets(scene, shadows) {
     const s = (scaleOverride ?? p.size) * K;
     node.scale.setScalar(s);
     if (p.squash) node.scale.set(s * p.squash[0], s * p.squash[1], s * p.squash[2]);
+    if (p.brighten) node.traverse(o => { if (o.material && o.material.color) { o.material = o.material.clone(); o.material.color.multiplyScalar(p.brighten); } });
     let y;
     if (p.yOverride !== undefined) y = p.yOverride;
     else if (p.onTopOf) {
