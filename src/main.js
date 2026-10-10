@@ -28,7 +28,7 @@ scene.fog = new THREE.Fog(0xbfe3ee, 150, 330);
 // ---------- Kamera (Referenz-Ansicht: ISO-artig von Süden) ----------
 const camera = new THREE.PerspectiveCamera(23, innerWidth / innerHeight, 0.5, 600);
 const CAMS = {
-  ref:     { pos: [10, 106, 148], tgt: [0, -3, -12] },
+  ref:     { pos: [14, 104, 150], tgt: [3, -3, -13] },
   top:     { pos: [0, 175, 6], tgt: [0, 0, 0] },
   iso:     { pos: [70, 55, 70], tgt: [0, 0, 0] },
   north:   { pos: [0, 35, -85], tgt: [0, 4, 0] },

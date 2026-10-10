@@ -23,7 +23,7 @@ export const ZONES = {
 
 // Flussverlauf vom See bis zur Bucht (x,z) + Breite
 export const RIVER = {
-  pts: [[-5, -5], [-9, 0], [-10, 7], [-7, 14], [-1, 18], [6, 19], [13, 20], [19, 22.5], [25, 26], [29, 30]],
+  pts: [[-5, -5], [-9, 0], [-10, 7], [-7, 14], [-1, 18], [6, 19], [13, 20], [19, 22.5], [25, 26], [29, 30], [33, 34]],
   width: 3.2,
   yStart: 0.75,   // Wasserspiegel am Seeauslauf
   yEnd: 0.02,     // am Meer
@@ -52,8 +52,8 @@ export const PATHS = [
 export const PLACEMENTS = [
   { file: 'mountain_snowy_cave.glb', size: 4.0, at: [[-17, -29, 2.6], [3, -31, 0.4], [18, -25, -0.9]], sinkFrac: 0.34 },
   { file: 'cliff_rock_castle.glb', size: 3.0, at: [[31, -9, 0.3]], sinkFrac: 0.30 },
-  { file: 'castle.glb', size: 2.5, at: [[31, -9, -0.5]], onTopOf: 'cliff_rock_castle.glb' },
-  { file: 'bridge_stone.glb', size: 2.6, at: [[24.5, -9, 1.62]], yOverride: 2.6 },
+  { file: 'castle.glb', size: 2.5, at: [[31, -9, -0.5]], yOverride: 13.2 },
+  { file: 'bridge_stone.glb', size: 3.0, at: [[25.5, -9, 1.62]], yOverride: 4.8 },
   { file: 'bridge_wood.glb', size: 1.0, at: [[-9.4, 3.4, 0.35], [-4.4, 16.4, 1.2]] },
   { file: 'windmill.glb', size: 1.6, at: [[-27, -10, 0.3]] },
 
@@ -62,7 +62,7 @@ export const PLACEMENTS = [
   { file: 'house_red_roof.glb', size: 1.0, at: [[-8.5, 10.5, 0.9], [0.5, 16.5, 3.3], [-2.5, -1.5, -0.25], [-1.5, 17.8, 2.9]] },
   { file: 'house_chimney.glb', size: 1.1, at: [[13, -4, -0.8], [-13, 4.5, 0.55]] },
 
-  { file: 'plaza_cobblestone_tile.glb', size: 1.0, squash: [1.0, 0.16, 1.0], grid: { x0: -4.2, z0: 1.8, dx: 3.0, dz: 3.0, nx: 6, nz: 4, s: 0.58 } },
+  { file: 'plaza_cobblestone_tile.glb', size: 1.0, squash: [1.0, 0.16, 1.0], grid: { x0: -4.2, z0: 1.8, dx: 3.0, dz: 3.0, nx: 6, nz: 4, s: 0.63 } },
 
   { file: 'barn_thatched.glb', size: 0.9, at: [[-25, 17, 0.7]] },
   { file: 'shed_wood.glb', size: 0.5, at: [[-22.5, 22.5, -0.4], [-9, 16.5, 2.1]] },
@@ -70,13 +70,13 @@ export const PLACEMENTS = [
   { file: 'field_vegetable.glb', size: 1.0, at: [[-19.5, 27.5, 0.05], [-11.5, 20, 0.05]], squash: [1.0, 0.62, 1.0] },
 
   { file: 'pier_wood.glb', size: 1.5, at: [[18.5, 25, -0.85], [27, 25, -0.5]], yOverride: 0.4 },
-  { file: 'sailboat.glb', size: 0.6, at: [[21.5, 30, 0.5], [28.5, 28.5, -0.9]], water: true },
+  { file: 'sailboat.glb', size: 0.9, at: [[21.5, 30, 0.5], [28.5, 28.5, -0.9]], water: true },
   { file: 'rowboat.glb', size: 0.4, at: [[16.5, 28.5, 1.2]], water: true },
   { file: 'barrels_crates.glb', size: 0.2, at: [[14.5, 19.5, 0.3], [4.5, 3.5, -1.1], [-1.5, 11.5, 2.2], [22.5, 18.5, 0.9]] },
   { file: 'lamp_post.glb', size: 0.4, at: [[-3.5, 4, 0], [7.5, 4.5, 0.8], [9, 12.5, 0], [-6, 9.5, 0], [1.5, 13.5, 0], [12, 6, 0]] },
   { file: 'signpost.glb', size: 0.3, at: [[-8.5, -1, 0.7], [5.5, 16.5, -0.4], [-15, 13.5, 1.9]] },
-  { file: 'crystal_purple.glb', size: 0.7, at: [[33.5, -14, 0.6], [35.5, -10.5, -0.8], [32, -18.5, 1.7]] },
-  { file: 'crystal_purple.glb', size: 1.3, at: [[14, -15, 0.9]] },
+  { file: 'crystal_purple.glb', size: 0.55, at: [[33, -13.5, 0.6], [35, -11, -0.8], [31.5, -17.5, 1.7]] },
+  { file: 'crystal_purple.glb', size: 1.0, at: [[17, -8, 0.9]] },
   { file: 'crystal_purple.glb', size: 0.5, at: [[-26, 12, 0.4]] },
   { file: 'crystal_blue_ruins.glb', size: 0.6, at: [[-31, 7, 0.9]] },
 ];

@@ -103,8 +103,8 @@ function foamRing(radiusFn, y, width, color, opacity, segs = 160) {
 
 export function buildFoam() {
   const group = new THREE.Group();
-  group.add(foamRing(th => coastRadius(th) + 0.4, WORLD.seaLevel + 0.06, 0.9, 0xffffff, 0.85));
-  group.add(foamRing(th => coastRadius(th) + 2.6, WORLD.seaLevel + 0.05, 1.4, 0xdff6f8, 0.35));
+  group.add(foamRing(th => coastRadius(th) + 0.4, WORLD.seaLevel + 0.06, 1.3, 0xffffff, 0.9));
+  group.add(foamRing(th => coastRadius(th) + 2.8, WORLD.seaLevel + 0.05, 2.0, 0xdff6f8, 0.4));
   // Burg-Inselchen
   group.add(foamRing(() => ZONES.castleIslet.r + 0.3, WORLD.seaLevel + 0.06, 0.7, 0xffffff, 0.8)
     .translateX(ZONES.castleIslet.x).translateZ(ZONES.castleIslet.z));
@@ -187,7 +187,7 @@ export function buildWaterfall(heightFn) {
   const mid = new THREE.Vector3(-3.2, 0, -22.5);
   const bot = new THREE.Vector3(-4.0, 0, -18.5);
   const curve = new THREE.QuadraticBezierCurve3(top, mid, bot);
-  const N = 40, W = 3.4;
+  const N = 40, W = 2.4;
   const hFn = heightFn || ((x, z) => 10);
   const startY = hFn(top.x, top.z) + 2.0; // tritt leicht erhöht aus dem Fels
   const verts = [], uvs = [], idx = [];
@@ -219,9 +219,9 @@ export function buildWaterfall(heightFn) {
       void main(){
         float stripe = sin(vUv.y*28.0 - uTime*9.0)*0.5+0.5;
         float stripe2 = sin(vUv.y*13.0 - uTime*6.0 + vUv.x*4.0)*0.5+0.5;
-        vec3 col = mix(vec3(0.55,0.82,0.9), vec3(0.95,1.0,1.0), stripe*0.65 + stripe2*0.3);
+        vec3 col = mix(vec3(0.62,0.88,0.94), vec3(1.0,1.0,1.0), stripe*0.6 + stripe2*0.35);
         float edge = smoothstep(0.0,0.15,vUv.x)*smoothstep(1.0,0.85,vUv.x);
-        gl_FragColor = vec4(col, 0.92*edge + 0.06);
+        gl_FragColor = vec4(col, 0.97*edge + 0.03);
       }`,
   });
   const fall = new THREE.Mesh(g, mat);
@@ -229,7 +229,7 @@ export function buildWaterfall(heightFn) {
   group.add(fall);
 
   // Gischt am Aufprall
-  const foamGeo = new THREE.CircleGeometry(2.6, 24);
+  const foamGeo = new THREE.CircleGeometry(3.2, 24);
   foamGeo.rotateX(-Math.PI / 2);
   const foamMat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false,
