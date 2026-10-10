@@ -73,7 +73,7 @@ export function heightAt(x, z) {
     h += 1.6 * sstep(0.86, 0.99, d);
   } else {
     // Klippe -> Meeresboden
-    h = lerp(3.6, -9, sstep(0.97, 1.18, d)) - Math.max(0, (d - 1.18)) * 12;
+    h = lerp(3.6, -11, sstep(0.97, 1.10, d)) - Math.max(0, (d - 1.18)) * 12;
   }
 
   // Windmühlen-Hügel NW
@@ -239,10 +239,11 @@ function buildUnderside() {
       const th = th0 + (th1 - th0) * (ai / radial);
       // Tiefe je Sektor: Süden/Osten (zur ref-Kamera) massiver, Norden flacher
       const depthScale = 0.62 + 0.45 * Math.max(0, Math.sin(th + Math.PI * 0.15));
-      const y = -1.2 - f * 14 * depthScale;
-      const shrink = 1 - f * (0.8 + 0.1 * depthScale);
-      const rr = coastRadius(th) * 0.9 * shrink * (0.9 + 0.25 * fbm(Math.cos(th) * 3, ri * 1.7));
-      verts.push(Math.cos(th) * rr, y + 1.5 * fbm(th * 4, ri * 2.2), Math.sin(th) * rr);
+      const y = -1.2 - f * 19 * depthScale;
+      const shrink = 1 - f * (0.82 + 0.1 * depthScale);
+      const jag = 0.85 + 0.35 * fbm(Math.cos(th) * 3, ri * 1.7) + 0.12 * Math.sin(th * 7 + ri);
+      const rr = coastRadius(th) * 0.9 * shrink * jag;
+      verts.push(Math.cos(th) * rr, y + 2.2 * fbm(th * 4, ri * 2.2), Math.sin(th) * rr);
     }
   }
   for (let ri = 0; ri < rings; ri++) {
@@ -254,8 +255,23 @@ function buildUnderside() {
   geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
   geo.setIndex(idx);
   geo.computeVertexNormals();
-  const mat = new THREE.MeshStandardMaterial({ color: 0x6e5c48, roughness: 1, flatShading: true });
+  const mat = new THREE.MeshStandardMaterial({ color: 0x6b6257, roughness: 1, flatShading: true });
   const m = new THREE.Mesh(geo, mat);
   m.name = 'underside';
-  return m;
+  const grp = new THREE.Group();
+  grp.add(m);
+  // Felszacken (Stalaktiten) unter der Insel
+  const spikeGeo = new THREE.ConeGeometry(1, 1, 6);
+  const spikeMat = new THREE.MeshStandardMaterial({ color: 0x5f574c, roughness: 1, flatShading: true });
+  for (let i = 0; i < 12; i++) {
+    const th = i * 0.52 + 0.3;
+    const rr = coastRadius(th) * (0.35 + 0.45 * Math.abs(fbm(Math.cos(th) * 5, 3)));
+    const len = 5 + 9 * Math.abs(fbm(th * 3, 7));
+    const spike = new THREE.Mesh(spikeGeo, spikeMat);
+    spike.scale.set(1.5 + len * 0.18, len, 1.5 + len * 0.18);
+    spike.rotation.x = Math.PI; // Spitze nach unten
+    spike.position.set(Math.cos(th) * rr, -1.5 - len * 0.45, Math.sin(th) * rr);
+    grp.add(spike);
+  }
+  return grp;
 }

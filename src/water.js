@@ -190,16 +190,25 @@ export function buildWaterfall(heightFn) {
   const N = 40, W = 2.4;
   const hFn = heightFn || ((x, z) => 10);
   const startY = hFn(top.x, top.z) + 2.0; // tritt leicht erhöht aus dem Fels
+  const kneeT = 0.45;
+  const kp = curve.getPoint(kneeT);
+  const kneeY = hFn(kp.x, kp.z) + 0.12;
+  const edgeY = (x, z, t) => {
+    const ty = hFn(x, z) + 0.12;
+    if (t < 0.18) return startY + (ty - startY) * (t / 0.18);
+    if (t < kneeT) return ty;
+    // unteres Stück: freier Fall vom Knie in den See
+    const k = (t - kneeT) / (1 - kneeT);
+    return kneeY + (0.5 - kneeY) * Math.pow(k, 0.85);
+  };
   const verts = [], uvs = [], idx = [];
   for (let i = 0; i <= N; i++) {
     const t = i / N;
     const p = curve.getPoint(t);
     const wHalf = W * (0.8 + 0.5 * t) * 0.5;
-    // je Rand-Vertex separat ans Terrain legen -> Band folgt dem Hang
+    // je Rand-Vertex separat -> Band folgt Hang oben, fällt unten
     const lx = p.x - wHalf, rx = p.x + wHalf;
-    const ly = t < 0.18 ? startY + (hFn(lx, p.z) + 0.12 - startY) * (t / 0.18) : hFn(lx, p.z) + 0.12;
-    const ry = t < 0.18 ? startY + (hFn(rx, p.z) + 0.12 - startY) * (t / 0.18) : hFn(rx, p.z) + 0.12;
-    verts.push(lx, ly, p.z, rx, ry, p.z);
+    verts.push(lx, edgeY(lx, p.z, t), p.z, rx, edgeY(rx, p.z, t), p.z);
     uvs.push(0, t * 8, 1, t * 8);
   }
   for (let i = 0; i < N; i++) {

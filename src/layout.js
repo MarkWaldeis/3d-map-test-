@@ -23,7 +23,7 @@ export const ZONES = {
 
 // Flussverlauf vom See bis zur Bucht (x,z) + Breite
 export const RIVER = {
-  pts: [[-5, -5], [-9, 0], [-10, 7], [-7, 14], [-1, 18], [6, 19], [13, 20], [19, 22.5], [25, 26], [29, 30], [33, 34]],
+  pts: [[-4.5, -8], [-5, -5], [-9, 0], [-10, 7], [-7, 14], [-1, 18], [6, 19], [13, 20], [19, 22.5], [25, 26], [29, 30], [33, 34]],
   width: 3.2,
   yStart: 0.75,   // Wasserspiegel am Seeauslauf
   yEnd: 0.02,     // am Meer
@@ -76,8 +76,8 @@ export const PLACEMENTS = [
   { file: 'lamp_post.glb', size: 0.4, at: [[-3.5, 4, 0], [7.5, 4.5, 0.8], [9, 12.5, 0], [-6, 9.5, 0], [1.5, 13.5, 0], [12, 6, 0]] },
   { file: 'signpost.glb', size: 0.3, at: [[-8.5, -1, 0.7], [5.5, 16.5, -0.4], [-15, 13.5, 1.9]] },
   { file: 'crystal_purple.glb', size: 0.55, at: [[33, -13.5, 0.6], [35, -11, -0.8], [31.5, -17.5, 1.7]] },
-  { file: 'crystal_purple.glb', size: 1.0, at: [[17, -8, 0.9]] },
-  { file: 'crystal_purple.glb', size: 0.5, at: [[-26, 12, 0.4]] },
+  { file: 'crystal_purple.glb', size: 1.4, at: [[17, -8, 0.9]] },
+  { file: 'crystal_purple.glb', size: 0.8, at: [[-26, 12, 0.4]] },
   { file: 'crystal_blue_ruins.glb', size: 0.6, at: [[-31, 7, 0.9]] },
 ];
 
@@ -86,8 +86,9 @@ export const SCATTER = [
   { file: 'tree_pine.glb', size: 0.8, count: 85, in: 'forestWest', jitter: 0.25 },
   { file: 'tree_pine.glb', size: 0.85, count: 32, in: 'forestNorth', jitter: 0.3 },
   { file: 'tree_round.glb', size: 0.7, count: 26, anywhere: true, jitter: 0.3 },
-  { file: 'tree_round.glb', size: 0.65, count: 7, near: [[17, 0], [20, -14], [14, -8], [24, 2]], spread: 4.5, jitter: 0.3 },
-  { file: 'rock_boulder.glb', size: 0.25, count: 10, near: [[16, -3], [20, -8], [25, -1], [10, -10]], spread: 5, jitter: 0.4 },
+  { file: 'tree_round.glb', size: 0.65, count: 12, near: [[17, 0], [20, -14], [14, -8], [24, 2], [18, -18]], spread: 4.5, jitter: 0.3 },
+  { file: 'tree_autumn.glb', size: 0.6, count: 4, near: [[19, -5], [22, -15]], spread: 4, jitter: 0.3 },
+  { file: 'rock_boulder.glb', size: 0.25, count: 14, near: [[16, -3], [20, -8], [25, -1], [10, -10], [18, -18]], spread: 5, jitter: 0.4 },
   { file: 'tree_autumn.glb', size: 0.7, count: 7, anywhere: true, near: [[-28, -2], [-20, 12], [-12, 7], [15, -6], [-3, 21], [8, -10], [-33, -6]], spread: 6 },
   { file: 'rock_boulder.glb', size: 0.3, count: 16, coast: true, jitter: 0.5 },
   { file: 'flower_bush.glb', size: 0.15, count: 46, anywhere: true, jitter: 0.4 },
