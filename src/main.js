@@ -5,6 +5,7 @@ import { WORLD } from './layout.js';
 import { buildTerrain, fbm, heightAt } from './terrain.js';
 import { buildSea, buildFoam, buildLake, buildRiver, buildWaterfall, buildFountainWater, tickWater } from './water.js';
 import { loadAll, buildAssets, shrinkGLTF } from './assets.js';
+import { Player } from './player.js';
 
 const params = new URLSearchParams(location.search);
 const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent);
@@ -160,6 +161,57 @@ loadAll(GLB_FILES, (n, total) => {
   console.error(err);
 });
 
+// ---------- Charakter-Modus ----------
+const player = new Player();
+let walkMode = false, camRestoring = null;
+const toast = (msg, ms = 2200) => {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.style.display = msg ? 'block' : 'none';
+  if (msg && ms) setTimeout(() => { el.style.display = 'none'; }, ms);
+};
+async function enterWalkMode() {
+  if (!player.ready) {
+    toast('Lade Ritter …', 0);
+    try { await player.load(QUALITY); } catch (e) { toast('Charakter-Fehler: ' + e, 4000); return; }
+    toast('');
+    if (params.get('charpos')) {
+      const [px, pz] = params.get('charpos').split(',').map(Number);
+      if (isFinite(px) && isFinite(pz)) { player.pos.x = px; player.pos.z = pz; }
+    }
+    player.bindInput(document.getElementById('joy'));
+    world.add(player.group);
+    if (poseParam !== null) player.frozenPhase = parseFloat(poseParam);
+  }
+  walkMode = true;
+  document.getElementById('walkBtn').textContent = 'Karten-Ansicht';
+  if (matchMedia('(pointer:coarse)').matches) document.getElementById('joy').style.display = 'block';
+  controls.enablePan = false;
+  controls.minDistance = 5; controls.maxDistance = 60;
+  controls.minPolarAngle = 0.12; controls.maxPolarAngle = 1.5;
+  // Kamera steil von oben auf den Charakter (?wcam=dx,dy,dz überschreibt)
+  let cx = -1.5, cy = 15, cz = 9;
+  if (params.get('wcam')) {
+    const w = params.get('wcam').split(',').map(Number);
+    if (w.length === 3 && w.every(isFinite)) [cx, cy, cz] = w;
+  }
+  camera.position.set(player.pos.x + cx, player.pos.y + cy, player.pos.z + cz);
+  controls.target.set(player.pos.x, player.pos.y + 1.6, player.pos.z);
+  controls.update();
+}
+function exitWalkMode() {
+  walkMode = false;
+  document.getElementById('walkBtn').textContent = 'Als Ritter laufen';
+  document.getElementById('joy').style.display = 'none';
+  controls.enablePan = true;
+  controls.minDistance = 30; controls.maxDistance = 240;
+  controls.minPolarAngle = 0.12; controls.maxPolarAngle = 1.42;
+  setCam('ref');
+}
+document.getElementById('walkBtn')?.addEventListener('click', () => walkMode ? exitWalkMode() : enterWalkMode());
+if (params.get('mode') === 'walk') {
+  const t0 = setInterval(() => { if (dynamic) { clearInterval(t0); enterWalkMode(); } }, 200);
+}
+
 // ---------- HUD ----------
 document.getElementById('refBtn')?.addEventListener('click', () => setCam('ref'));
 
@@ -173,10 +225,13 @@ renderer.domElement.addEventListener('webglcontextlost', e => {
 // ---------- Loop ----------
 const clock = new THREE.Clock();
 const freeze = params.has('freeze');
+// Test-Hook: ?pose=<phase> friert den Walk-Cycle ein (Screenshot-Prüfung)
+const poseParam = params.get('pose');
 let t0 = 0, frames = 0, degraded = false, perfT0 = -1;
 renderer.setAnimationLoop(() => {
   const t = clock.getElapsedTime();
   const dt = Math.min(t - t0, 0.1); t0 = t;
+
 
   if (!freeze) {
     tickWater(world, t);
@@ -198,6 +253,14 @@ renderer.setAnimationLoop(() => {
         if (blades) blades.rotation.z += dt * 0.9;
       }
     }
+  }
+
+  if (walkMode && player.ready) {
+    player.tick(dt, controls.getAzimuthalAngle(), t);
+    // Folgekamera: Target weich auf den Charakter, Abstand/Winkel frei orbitierbar
+    const tgt = controls.target;
+    const want = new THREE.Vector3(player.pos.x, player.pos.y + 1.4, player.pos.z);
+    tgt.lerp(want, 1 - Math.exp(-8 * dt));
   }
 
   controls.update();
