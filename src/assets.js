@@ -9,15 +9,45 @@ const K = WORLD.unitK;
 const loader = new GLTFLoader();
 const cache = new Map();
 
-export function loadAll(files, onProgress) {
-  let done = 0;
-  return Promise.all(files.map(f => new Promise((res, rej) => {
-    loader.load('./' + f, g => {
+export function loadAll(files, onProgress, onLoaded) {
+  let done = 0, i = 0;
+  // begrenzte Parallelität: decodierte Texturen sollen nicht gleichzeitig im Speicher liegen (iOS!)
+  const workers = Array.from({ length: 5 }, async () => {
+    while (i < files.length) {
+      const f = files[i++];
+      const g = await new Promise((res, rej) => loader.load('./' + f, res, undefined, rej));
+      if (onLoaded) onLoaded(g);
       cache.set(f, g);
       onProgress && onProgress(++done, files.length);
-      res(g);
-    }, undefined, rej);
-  })));
+    }
+  });
+  return Promise.all(workers);
+}
+
+// Texturen eines geladenen GLTF verkleinern (iOS-Speicher) — ersetzt image durch Canvas
+const TEX_KEYS = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap', 'alphaMap', 'bumpMap', 'specularMap'];
+const shrunk = new Set();
+export function shrinkGLTF(gltf, maxSize) {
+  gltf.scene.traverse(o => {
+    const mats = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
+    for (const m of mats) {
+      for (const key of TEX_KEYS) {
+        const t = m[key];
+        if (!t || !t.image || shrunk.has(t)) continue;
+        shrunk.add(t);
+        const img = t.image, w = img.width, h = img.height;
+        if (!w || !h || Math.max(w, h) <= maxSize) continue;
+        const k = maxSize / Math.max(w, h);
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(w * k));
+        c.height = Math.max(1, Math.round(h * k));
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        if (img.close) img.close(); // ImageBitmap freigeben
+        t.image = c;
+        t.needsUpdate = true;
+      }
+    }
+  });
 }
 
 // Ein GLB -> eine gemergte Geometrie + Referenzmaterial (für InstancedMesh)
@@ -47,7 +77,7 @@ function cloneScene(gltf, shadows) {
     if (o.isMesh) {
       o.castShadow = shadows;
       o.receiveShadow = true;
-      if (o.material && o.material.map) o.material.map.anisotropy = 4;
+      if (o.material && o.material.map) o.material.map.anisotropy = shadows ? 4 : 1;
     }
   });
   return s;

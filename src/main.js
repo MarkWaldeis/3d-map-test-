@@ -4,16 +4,18 @@ import { OrbitControls } from '../vendor/controls/OrbitControls.js';
 import { WORLD } from './layout.js';
 import { buildTerrain, fbm, heightAt } from './terrain.js';
 import { buildSea, buildFoam, buildLake, buildRiver, buildWaterfall, buildFountainWater, tickWater } from './water.js';
-import { loadAll, buildAssets } from './assets.js';
+import { loadAll, buildAssets, shrinkGLTF } from './assets.js';
 
 const params = new URLSearchParams(location.search);
+const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent);
 const isMobile = matchMedia('(pointer:coarse)').matches || Math.min(innerWidth, innerHeight) < 700;
 const QUALITY = params.get('quality') || (isMobile ? 'low' : 'high');
 
 // ---------- Renderer / Szene ----------
 const canvas = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, QUALITY === 'low' ? 1.6 : 2));
+// Low: kein MSAA + niedrige PixelRatio — iOS-Safari stürzt sonst am Speicher ab
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: QUALITY !== 'low', powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, QUALITY === 'low' ? (isIOS ? 1.25 : 1.6) : 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -149,7 +151,7 @@ let dynamic = null;
 loadAll(GLB_FILES, (n, total) => {
   loaderTextEl.textContent = `Lade Insel … ${n}/${total}`;
   barEl.style.width = `${(n / total) * 100}%`;
-}).then(() => {
+}, QUALITY === 'low' ? g => shrinkGLTF(g, isIOS ? 384 : 512) : null).then(() => {
   dynamic = buildAssets(world, QUALITY !== 'low');
   loaderEl.style.display = 'none';
   document.body.dataset.ready = '1';
@@ -160,6 +162,13 @@ loadAll(GLB_FILES, (n, total) => {
 
 // ---------- HUD ----------
 document.getElementById('refBtn')?.addEventListener('click', () => setCam('ref'));
+
+// iOS: bei Context-Verlust Meldung statt Endlos-Reload
+renderer.domElement.addEventListener('webglcontextlost', e => {
+  e.preventDefault();
+  loaderEl.style.display = 'flex';
+  loaderTextEl.textContent = 'Grafik-Kontext verloren — bitte Seite neu laden';
+});
 
 // ---------- Loop ----------
 const clock = new THREE.Clock();
