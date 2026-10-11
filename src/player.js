@@ -2,8 +2,7 @@
 // Folgekamera von schräg oben, WASD/Pfeiltasten + Touch-Joystick, Terrain-Kollision
 import * as THREE from 'three';
 import { GLTFLoader } from '../vendor/loaders/GLTFLoader.js';
-import { heightAt, slopeAt, coastRadius } from './terrain.js';
-import { shrinkGLTF } from './assets.js';
+import { heightAt, slopeAt } from './terrain.js';
 
 // ---------- Skelett (Modell-lokal, BBox ~x±0.5 y±0.43 z±0.32, Positionen RELATIV zum Parent) ----------
 // Körpermitte x≈+0.08, Beine x≈0.0 (L) / +0.16 (R), Kopf x≈+0.09, Waffen-Arm +x, Cape −z, Füße y≈−0.43
@@ -67,26 +66,85 @@ function weightsAt(x, y, z) {
   return [[boneIndex.chest, 1 - t], [boneIndex.head, t]];
 }
 
+// Begehbare Brücken-Korridore: das Terrain unter der Brücke ist Wasser,
+// die Brücke selbst ist nur Geometrie — hier als begehbare „Brücke“ modelliert.
+const BRIDGES = [
+  { a: [22.6, -6.6], b: [29.2, -11.2], w: 2.2, yA: 3.0, yB: 5.2 },  // Steinbrücke -> Burg-Insel
+  { a: [-11.1, 4.25], b: [-7.7, 2.55], w: 1.6 },                    // Holzbrücke West
+  { a: [-6.3, 17.35], b: [-2.5, 15.45], w: 1.6 },                   // Holzbrücke Süd
+];
+
+// Begehbarkeit: Kreis-Hindernisse (Häuser, Brunnen, Mühle, Felsen, Kisten …)
+const OBSTACLES = [
+  [-7, 1.5, 3.0], [10, 0.5, 3.0], [11.5, 10, 3.0], [6.5, 15.5, 3.0], [-4.5, 14, 3.0], [5.5, 11.5, 3.0],   // Häuser blau
+  [-8.5, 10.5, 3.0], [0.5, 16.5, 3.0], [-2.5, -1.5, 3.0], [-1.5, 17.8, 3.0],                              // Häuser rot
+  [13, -4, 3.3], [-13, 4.5, 3.3],                                                                        // Schornstein-Häuser
+  [2, 6, 1.8],                                                                                          // Brunnen
+  [-27, -10, 3.6],                                                                                      // Windmühle
+  [-25, 17, 3.2], [-22.5, 22.5, 1.7], [-9, 16.5, 1.7],                                                    // Scheune/Schuppen
+  [31, -9, 4.6],                                                                                        // Burg
+  [14.5, 19.5, 0.9], [4.5, 3.5, 0.9], [-1.5, 11.5, 0.9], [22.5, 18.5, 0.9],                               // Kisten
+  [-3.5, 4, 0.5], [7.5, 4.5, 0.5], [9, 12.5, 0.5], [-6, 9.5, 0.5], [1.5, 13.5, 0.5], [12, 6, 0.5],         // Lampen
+  [-8.5, -1, 0.5], [5.5, 16.5, 0.5], [-15, 13.5, 0.5],                                                    // Wegweiser
+  [17, -8, 1.7], [33, -13.5, 0.9], [34, -12.8, 0.9], [31.5, -17.5, 0.9], [-26, 12, 0.9], [-31, 7, 1.3],   // Kristalle/Ruine
+  [-17, -29, 6.5], [3, -31, 6.5], [18, -25, 6.0], [-8, -30.5, 5.5], [11, -28, 5.5],                       // Bergmassive
+];
+
 export class Player {
   constructor() {
     this.group = new THREE.Group();
     this.mesh = null; this.bones = {}; this.ready = false;
-    this.pos = new THREE.Vector3(12, 0, 24);   // offene Wiese südlich des Dorfs
+    this.spawn = new THREE.Vector3(2, 0, 9.5);   // fester Spawn: Plaza südlich des Brunnens
+    this.pos = this.spawn.clone();
     this.heading = 0;                          // Blick zur Kamera (+z)
     this.walkPhase = 0; this.speed = 0;
     this.frozenPhase = null;              // != null: Pose einfrieren (Test)
     this.keys = {};
     this.joy = { active: false, dx: 0, dy: 0 };
+    this.marker = null;
+    this.autoDir = null;                    // Test: automatisch laufen
+  }
+
+  // Brücken-Deckhöhe (Rampe über die Länge), sonst null
+  bridgeY(x, z) {
+    for (const br of BRIDGES) {
+      const ax = x - br.a[0], az = z - br.a[1];
+      const bx = br.b[0] - br.a[0], bz = br.b[1] - br.a[1];
+      const t = Math.max(0, Math.min(1, (ax * bx + az * bz) / (bx * bx + bz * bz)));
+      const d = Math.hypot(ax - t * bx, az - t * bz);
+      if (d < br.w) {
+        if (br.yA !== undefined) return br.yA + (br.yB - br.yA) * t;
+        return Math.max(heightAt(x, z), Math.max(heightAt(...br.a), heightAt(...br.b)) + 0.7);
+      }
+    }
+    return null;
+  }
+  groundY(x, z) {
+    const by = this.bridgeY(x, z);
+    return by !== null ? by : heightAt(x, z);
+  }
+  walkable(x, z) {
+    if (this.bridgeY(x, z) !== null) return true;   // Brücken immer begehbar
+    if (heightAt(x, z) < 0.45) return false;        // Wasser (Strand h≈0.55 bleibt trocken)
+    if (slopeAt(x, z) > 2.2) return false;          // nur senkrechte Felswände
+    for (const [ox, oz, or_] of OBSTACLES)
+      if ((x - ox) * (x - ox) + (z - oz) * (z - oz) < or_ * or_) return false;
+    return true;
   }
 
   async load(quality) {
+    // Original-GLB hat ~736k Vertices — zu schwer für SkinnedMesh.
+    // Vordezimiert mit gltfpack (736k -> 36k Vertices) — Original-GLB würde
+    // jeden Frame ausbremsen; f32-Attribute, damit weightsAt echte Positionen liest.
+    const url = './knight-robot-walk.glb';
     const gltf = await new Promise((res, rej) =>
-      new GLTFLoader().load('./knight-robot.glb', res, undefined, rej));
-    if (quality === 'low') shrinkGLTF(gltf, 384);
+      new GLTFLoader().load(url, res, undefined, rej));
+    this._stage?.('parse fertig');
     let srcMesh = null;
     gltf.scene.traverse(o => { if (o.isMesh && !srcMesh) srcMesh = o; });
     const geo = srcMesh.geometry;
     geo.computeVertexNormals();
+    this._stage?.('normals fertig');
 
     // Skin-Attribute bauen
     const posA = geo.getAttribute('position');
@@ -102,6 +160,7 @@ export class Player {
     }
     geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4));
     geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4));
+    this._stage?.('skin fertig');
 
     const mat = srcMesh.material.clone();
     if (mat.map) mat.map.anisotropy = quality === 'low' ? 1 : 4;
@@ -120,6 +179,7 @@ export class Player {
     this.mesh.add(boneObjs[0]);
     this.mesh.updateMatrixWorld(true);
     this.mesh.bind(new THREE.Skeleton(boneObjs));
+    this._stage?.('rig fertig');
     this.hipsY0 = this.bones.hips.position.y;
 
     const s = 2.4 / 0.864;                  // Ritter ~2.4 Welt-Einheiten groß
@@ -128,6 +188,21 @@ export class Player {
     this.mesh.castShadow = quality !== 'low';
     this.group.add(this.mesh);
     this.group.position.set(this.pos.x, heightAt(this.pos.x, this.pos.z), this.pos.z);
+
+    // Sichtbare Spawn-Markierung: pulsierender Ring + Lichtsäule
+    const ringGeo = new THREE.TorusGeometry(1.5, 0.12, 8, 40);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x7fe8ff, transparent: true, opacity: 0.85 });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = -Math.PI / 2;
+    const beamMat = new THREE.MeshBasicMaterial({
+      color: 0x9feaff, transparent: true, opacity: 0.16,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+    });
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.5, 9, 24, 1, true), beamMat);
+    beam.position.y = 4.5;
+    this.marker = new THREE.Group();
+    this.marker.add(ring, beam);
+    this.marker.position.set(this.spawn.x, heightAt(this.spawn.x, this.spawn.z) + 0.12, this.spawn.z);
     this.ready = true;
   }
 
@@ -160,6 +235,7 @@ export class Player {
   }
 
   inputVec() {
+    if (this.autoDir) return this.autoDir;  // ?autowalk Test
     let x = 0, z = 0;
     if (this.keys['KeyW'] || this.keys['ArrowUp']) z -= 1;
     if (this.keys['KeyS'] || this.keys['ArrowDown']) z += 1;
@@ -168,14 +244,6 @@ export class Player {
     if (this.joy.active) { x += this.joy.dx; z += this.joy.dy; }
     const l = Math.hypot(x, z);
     return l > 0 ? [x / l, z / l] : [0, 0];
-  }
-
-  walkable(x, z) {
-    if (heightAt(x, z) < 0.85) return false;             // Wasser/Ufer
-    if (slopeAt(x, z) > 0.95) return false;              // Klippen/Berghang
-    const th = Math.atan2(z, x);
-    if (Math.hypot(x, z) > coastRadius(th) * 0.95) return false;
-    return true;
   }
 
   tick(dt, camYaw, t) {
@@ -196,6 +264,30 @@ export class Player {
       if (this.walkable(nx, nz)) { this.pos.x = nx; this.pos.z = nz; }
       else if (this.walkable(nx, this.pos.z)) this.pos.x = nx;
       else if (this.walkable(this.pos.x, nz)) this.pos.z = nz;
+      else {
+        // Tangenten-Slide: Bewegung entlang des Hindernis-Kreises projizieren,
+        // sonst klemmt man diagonal an Häusern/Felsen fest.
+        for (const [ox, oz, or_] of OBSTACLES) {
+          const dx = this.pos.x - ox, dz = this.pos.z - oz;
+          const d = Math.hypot(dx, dz);
+          if (d < or_ + 0.4 && d > 1e-4) {
+            const tx = -dz / d, tz = dx / d;
+            const mt = (mx * tx + mz * tz) * SPEED * dt;
+            const sx = this.pos.x + tx * mt, sz = this.pos.z + tz * mt;
+            if (this.walkable(sx, sz)) { this.pos.x = sx; this.pos.z = sz; }
+            break;
+          }
+        }
+      }
+      // Penetration auflösen: minimal aus Kreisen rausschieben
+      for (const [ox, oz, or_] of OBSTACLES) {
+        const dx = this.pos.x - ox, dz = this.pos.z - oz;
+        const d = Math.hypot(dx, dz);
+        if (d > 1e-4 && d < or_) {
+          this.pos.x = ox + (dx / d) * or_;
+          this.pos.z = oz + (dz / d) * or_;
+        }
+      }
       const want = Math.atan2(mx, mz);
       let d = want - this.heading;
       while (d > Math.PI) d -= Math.PI * 2;
@@ -205,7 +297,8 @@ export class Player {
     } else {
       this.speed = Math.max(0, this.speed - dt * 5);
     }
-    this.pos.y = heightAt(this.pos.x, this.pos.z);
+    const gy = this.groundY(this.pos.x, this.pos.z);
+    this.pos.y += (gy - this.pos.y) * Math.min(1, dt * 12);   // weicher Übergang Brücke<->Terrain
     this.group.position.copy(this.pos);
     this.group.rotation.y = this.heading;             // Modell blickt +z
 
@@ -234,5 +327,12 @@ export class Player {
     B.shArm.rotation.y = -s * 0.5 * amp;              // Waffenarm schwingt vorn/ zurück
     B.shArm.rotation.z = Math.sin(t * 1.4) * 0.02 * (1 - amp) - 0.05 * amp;
     B.foreArm.rotation.y = -s * 0.15 * amp;
+
+    // Spawn-Marker pulsieren
+    if (this.marker) {
+      const p = 1 + Math.sin(t * 2.4) * 0.08;
+      this.marker.children[0].scale.setScalar(p);
+      this.marker.children[0].material.opacity = 0.6 + Math.sin(t * 2.4) * 0.25;
+    }
   }
 }

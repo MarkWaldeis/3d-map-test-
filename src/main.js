@@ -163,6 +163,7 @@ loadAll(GLB_FILES, (n, total) => {
 
 // ---------- Charakter-Modus ----------
 const player = new Player();
+window.__player = player;   // Debug-Hook
 let walkMode = false, camRestoring = null;
 const toast = (msg, ms = 2200) => {
   const el = document.getElementById('toast');
@@ -172,6 +173,7 @@ const toast = (msg, ms = 2200) => {
 async function enterWalkMode() {
   if (!player.ready) {
     toast('Lade Ritter …', 0);
+    player._stage = (s) => toast('Ritter: ' + s, 0);
     try { await player.load(QUALITY); } catch (e) { toast('Charakter-Fehler: ' + e, 4000); return; }
     toast('');
     if (params.get('charpos')) {
@@ -180,7 +182,15 @@ async function enterWalkMode() {
     }
     player.bindInput(document.getElementById('joy'));
     world.add(player.group);
+    if (player.marker) world.add(player.marker);
     if (poseParam !== null) player.frozenPhase = parseFloat(poseParam);
+    if (params.get('autowalk')) {
+      const d = params.get('autowalk').split(',').map(Number);
+      if (d.length === 2 && d.every(isFinite)) {
+        const l = Math.hypot(...d) || 1;
+        player.autoDir = [d[0] / l, d[1] / l];
+      }
+    }
   }
   walkMode = true;
   document.getElementById('walkBtn').textContent = 'Karten-Ansicht';
@@ -208,6 +218,12 @@ function exitWalkMode() {
   setCam('ref');
 }
 document.getElementById('walkBtn')?.addEventListener('click', () => walkMode ? exitWalkMode() : enterWalkMode());
+if (params.has('dbg')) setInterval(() => {
+  const s = `${player.pos.x.toFixed(1)},${player.pos.z.toFixed(1)} y${player.pos.y.toFixed(1)} s${player.speed.toFixed(1)} r${player.ready ? 1 : 0} w${walkMode ? 1 : 0} a${player.autoDir ? 1 : 0}`;
+  document.title = s;
+  const el = document.getElementById('toast');
+  if (el && walkMode) { el.textContent = s; el.style.display = 'block'; }
+}, 400);
 if (params.get('mode') === 'walk') {
   const t0 = setInterval(() => { if (dynamic) { clearInterval(t0); enterWalkMode(); } }, 200);
 }
@@ -257,10 +273,12 @@ renderer.setAnimationLoop(() => {
 
   if (walkMode && player.ready) {
     player.tick(dt, controls.getAzimuthalAngle(), t);
-    // Folgekamera: Target weich auf den Charakter, Abstand/Winkel frei orbitierbar
-    const tgt = controls.target;
+    // Folgekamera starr: Kamera UND Ziel um dieselbe Differenz schieben,
+    // sonst läuft der Ritter aus dem Orbit-Kamerabild
     const want = new THREE.Vector3(player.pos.x, player.pos.y + 1.4, player.pos.z);
-    tgt.lerp(want, 1 - Math.exp(-8 * dt));
+    const delta = want.sub(controls.target).multiplyScalar(1 - Math.exp(-8 * dt));
+    controls.target.add(delta);
+    camera.position.add(delta);
   }
 
   controls.update();
