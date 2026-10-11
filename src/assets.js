@@ -77,6 +77,11 @@ function cloneScene(gltf, shadows) {
     if (o.isMesh) {
       o.castShadow = shadows;
       o.receiveShadow = true;
+      if (o.material && o.material.color) {
+        // alles etwas heller/fröhlicher — einmalig pro Platzierung klonen
+        o.material = o.material.clone();
+        o.material.color.multiplyScalar(1.14);
+      }
       if (o.material && o.material.map) o.material.map.anisotropy = shadows ? 4 : 1;
     }
   });

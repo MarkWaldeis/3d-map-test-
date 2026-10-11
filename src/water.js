@@ -5,50 +5,82 @@ import { coastRadius, fbm } from './terrain.js';
 
 const waterVert = /* glsl */`
   varying vec2 vUv;
-  varying vec3 vPos;
+  varying vec3 vWorld;
+  varying vec3 vNorm;
   uniform float uTime;
   uniform float uWaveAmp;
   void main() {
     vUv = uv;
     vec3 p = position;
-    float w = sin(p.x * 0.16 + uTime * 1.1) * cos(p.z * 0.13 + uTime * 0.9)
-            + 0.6 * sin(p.x * 0.05 - uTime * 0.6 + p.z * 0.07);
+    float ph1 = p.x * 0.16 + uTime * 1.1;
+    float ph2 = p.z * 0.13 + uTime * 0.9;
+    float ph3 = p.x * 0.05 - uTime * 0.6 + p.z * 0.07;
+    float w = sin(ph1) * cos(ph2) + 0.6 * sin(ph3);
     p.y += w * uWaveAmp;
-    vPos = p;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+    // analytische Ableitungen -> echte Wellen-Normale für Licht/Fresnel
+    float dx = 0.16 * cos(ph1) * cos(ph2) + 0.6 * 0.05 * cos(ph3);
+    float dz = -0.13 * sin(ph1) * sin(ph2) + 0.6 * 0.07 * cos(ph3);
+    vNorm = normalize(vec3(-dx * uWaveAmp, 1.0, -dz * uWaveAmp));
+    vec4 wp = modelMatrix * vec4(p, 1.0);
+    vWorld = wp.xyz;
+    gl_Position = projectionMatrix * viewMatrix * wp;
   }`;
 
 const waterFrag = /* glsl */`
   varying vec2 vUv;
-  varying vec3 vPos;
+  varying vec3 vWorld;
+  varying vec3 vNorm;
   uniform float uTime;
   uniform vec3 uShallow;
   uniform vec3 uDeep;
+  uniform vec3 uSky;
+  uniform vec3 uSunDir;
+  uniform vec2 uOrigin;    // Welt-XZ der Gewässer-Mitte
   uniform float uCenter;   // Distanz-Mitte für Tiefenverlauf
   uniform float uStripe;   // Wellenstreifen-Stärke
+  uniform float uSpec;     // Sonnen-Glitzer
   void main() {
-    float d = length(vPos.xz) / uCenter;
-    vec3 col = mix(uShallow, uDeep, clamp(d * d * 1.15, 0.0, 1.0));
+    // feine Ripple-Störung auf der Welle-Normale
+    vec3 n = normalize(vNorm + vec3(
+      sin(vWorld.x * 1.9 + uTime * 1.8 + vWorld.z * 0.6) * 0.12
+        + sin(vWorld.x * 4.3 - uTime * 2.7 + vWorld.z * 1.3) * 0.06,
+      0.0,
+      sin(vWorld.z * 2.1 - uTime * 1.6 + vWorld.x * 0.7) * 0.12
+        + sin(vWorld.z * 3.9 + uTime * 2.3 + vWorld.x * 1.1) * 0.06));
+    vec3 viewDir = normalize(cameraPosition - vWorld);
+    float d = length(vWorld.xz - uOrigin) / uCenter;
+    vec3 base = mix(uShallow, uDeep, clamp(d * d * 1.15, 0.0, 1.0));
+    // Fresnel: flacher Blickwinkel -> Himmelsreflexion
+    float fres = pow(1.0 - max(dot(viewDir, n), 0.0), 3.0);
+    vec3 col = mix(base, uSky, clamp(fres * 0.7, 0.0, 1.0));
     // wandernde helle Streifen
-    float s = sin(vPos.x * 0.55 + vPos.z * 0.35 + uTime * 1.4)
-            * sin(vPos.z * 0.7 - uTime * 1.1 + vPos.x * 0.2);
+    float s = sin(vWorld.x * 0.55 + vWorld.z * 0.35 + uTime * 1.4)
+            * sin(vWorld.z * 0.7 - uTime * 1.1 + vWorld.x * 0.2);
     s = smoothstep(0.55, 0.95, s) * uStripe;
     // zweite, feinere Welle
-    float s2 = sin(vPos.x * 1.3 - uTime * 1.9 + vPos.z * 1.1);
+    float s2 = sin(vWorld.x * 1.3 - uTime * 1.9 + vWorld.z * 1.1);
     s += smoothstep(0.86, 0.99, s2) * uStripe * 0.5;
     col += vec3(s);
+    // Sonnen-Glitzer (Blinn)
+    vec3 h = normalize(viewDir + uSunDir);
+    float spec = pow(max(dot(n, h), 0.0), 80.0) * uSpec;
+    col += vec3(1.0, 0.98, 0.9) * spec;
     gl_FragColor = vec4(col, 1.0);
   }`;
 
-function waterMat({ shallow, deep, center, stripe = 0.12, amp = 0.18 }) {
+function waterMat({ shallow, deep, center, stripe = 0.12, amp = 0.18, sky = 0xcfeef7, spec = 0.8, origin = [0, 0] }) {
   return new THREE.ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },
       uShallow: { value: new THREE.Color(shallow) },
       uDeep: { value: new THREE.Color(deep) },
+      uSky: { value: new THREE.Color(sky) },
+      uSunDir: { value: new THREE.Vector3(-0.46, 0.81, -0.34).normalize() },
+      uOrigin: { value: new THREE.Vector2(origin[0], origin[1]) },
       uCenter: { value: center },
       uStripe: { value: stripe },
       uWaveAmp: { value: amp },
+      uSpec: { value: spec },
     },
     vertexShader: waterVert,
     fragmentShader: waterFrag,
@@ -58,7 +90,7 @@ function waterMat({ shallow, deep, center, stripe = 0.12, amp = 0.18 }) {
 export function buildSea() {
   const geo = new THREE.PlaneGeometry(340, 340, 90, 90);
   geo.rotateX(-Math.PI / 2);
-  const mat = waterMat({ shallow: 0x5fd4dd, deep: 0x2e9ec4, center: 150, stripe: 0.10, amp: 0.22 });
+  const mat = waterMat({ shallow: 0x66d6de, deep: 0x237fb5, center: 150, stripe: 0.055, amp: 0.22, spec: 0.5 });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.y = WORLD.seaLevel;
   mesh.name = 'sea';
@@ -129,7 +161,7 @@ export function buildLake() {
   }
   const geo = new THREE.ShapeGeometry(shape, 24);
   geo.rotateX(-Math.PI / 2);
-  const mat = waterMat({ shallow: 0x54c8d8, deep: 0x2b8fb5, center: 26, stripe: 0.08, amp: 0.05 });
+  const mat = waterMat({ shallow: 0x5fcddd, deep: 0x2588b3, center: 26, stripe: 0.07, amp: 0.05, spec: 0.7, origin: [ZONES.lake.x, ZONES.lake.z] });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.scale.set(0.82, 1, 0.82);
   mesh.position.set(ZONES.lake.x, 0.95, ZONES.lake.z);
@@ -169,11 +201,11 @@ export function buildRiver(heightFn) {
   g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   g.setIndex(idx);
   g.computeVertexNormals();
-  const mat = waterMat({ shallow: 0x5fd0da, deep: 0x35a0c0, center: 60, stripe: 0.10, amp: 0.04 });
+  const mat = waterMat({ shallow: 0x63d4dd, deep: 0x2f97bd, center: 60, stripe: 0.09, amp: 0.04, spec: 0.6 });
   // Fließrichtung entlang uv.y
   mat.fragmentShader = mat.fragmentShader.replace(
-    'float s = sin(vPos.x * 0.55',
-    'float s = sin(vUv.y * 2.2 - uTime * 3.0 + vUv.x) * 0.6 + sin(vPos.x * 0.55'
+    'float s = sin(vWorld.x * 0.55',
+    'float s = sin(vUv.y * 2.2 - uTime * 3.0 + vUv.x) * 0.6 + sin(vWorld.x * 0.55'
   );
   const mesh = new THREE.Mesh(g, mat);
   mesh.name = 'river';
@@ -275,7 +307,7 @@ export function buildFountainWater(heightFn) {
   const y = (heightFn ? heightFn(2, 6) : 2.65) + 1.62;
   const geo = new THREE.CircleGeometry(1.15, 20);
   geo.rotateX(-Math.PI / 2);
-  const mat = waterMat({ shallow: 0x8adfe8, deep: 0x4fb9cf, center: 6, stripe: 0.18, amp: 0.03 });
+  const mat = waterMat({ shallow: 0x92e2ea, deep: 0x4fb9cf, center: 6, stripe: 0.16, amp: 0.03, spec: 0.9, origin: [2, 6] });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.set(2, y, 6);
   mesh.name = 'fountainWater';

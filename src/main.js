@@ -19,7 +19,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, QUALITY === 'low' ? (isIOS ? 1
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.06;
+renderer.toneMappingExposure = 1.18;
 renderer.shadowMap.enabled = QUALITY !== 'low';
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -58,9 +58,9 @@ controls.maxPolarAngle = 1.42;
 controls.target.set(0, 0, -6);
 
 // ---------- Licht ----------
-const hemi = new THREE.HemisphereLight(0xe8f6ff, 0x8aa05e, 0.95);
+const hemi = new THREE.HemisphereLight(0xf0f9ff, 0x9ab26e, 1.15);
 scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xfff2dd, 2.1);
+const sun = new THREE.DirectionalLight(0xfff4e0, 2.35);
 sun.position.set(-40, 70, -30);          // von NW -> Schatten Richtung SO wie im Bild
 sun.castShadow = QUALITY !== 'low';
 if (sun.castShadow) {
@@ -73,7 +73,7 @@ if (sun.castShadow) {
   sun.shadow.normalBias = 0.02;
 }
 scene.add(sun);
-const fill = new THREE.DirectionalLight(0xcfe8ff, 0.35);
+const fill = new THREE.DirectionalLight(0xd8ecff, 0.5);
 fill.position.set(50, 30, 60);
 scene.add(fill);
 
